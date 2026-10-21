@@ -1,0 +1,21 @@
+{
+  "name": "nestjs-cms-demo",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@nestjs-cms-demo/api",
+    "dev:admin": "npm run dev --workspace=@nestjs-cms-demo/admin",
+    "build": "npm run build --workspaces",
+    "build:api": "npm run build --workspace=@nestjs-cms-demo/api",
+    "build:admin": "npm run build --workspace=@nestjs-cms-demo/admin",
+    "start:api": "npm run start:prod --workspace=@nestjs-cms-demo/api",
+    "start:admin": "npm run start --workspace=@nestjs-cms-demo/admin",
+    "test": "npm run test --workspace=@nestjs-cms-demo/api --",
+    "test:e2e": "npm run test:e2e --workspace=@nestjs-cms-demo/api",
+    "typecheck:admin": "npm run typecheck --workspace=@nestjs-cms-demo/admin",
+    "lint": "npm run lint --workspace=@nestjs-cms-demo/api"
+  }
+}

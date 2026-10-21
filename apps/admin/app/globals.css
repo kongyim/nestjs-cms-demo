@@ -1,0 +1,12 @@
+@layer theme, base, mui, components, utilities;
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  body {
+    margin: 0;
+  }
+}
