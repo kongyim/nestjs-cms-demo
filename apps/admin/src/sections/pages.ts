@@ -12,12 +12,12 @@ export const pagesSection: SectionConfig = {
   writePermission: 'pages:write',
   defaults: { title: '', status: 'draft', categoryId: null },
   listFields: [
+    { field: 'title', label: 'Title' },
     {
       field: 'categoryId',
       label: 'Category',
       itemsFrom: { resource: 'categories', labelField: 'name' },
     },
-    { field: 'title', label: 'Title' },
     { field: 'status', label: 'Status' },
     { field: 'updatedAt', label: 'Updated', type: 'date' },
   ],
