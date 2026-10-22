@@ -1,4 +1,10 @@
-export type FieldValue = string | boolean | string[] | null;
+export type FieldValue =
+  | string
+  | number
+  | boolean
+  | FieldValue[]
+  | { [key: string]: FieldValue }
+  | null;
 export type FormValues = Record<string, FieldValue>;
 export type ResourceRecord = FormValues & { id: string };
 export type ResourceList = {
@@ -9,10 +15,27 @@ export type Option = { value: string; label: string };
 export type FormField = {
   field: string;
   label: string;
-  type: 'text' | 'email' | 'select' | 'checkbox' | 'checkboxes';
+  type:
+    | 'text'
+    | 'email'
+    | 'url'
+    | 'textarea'
+    | 'number'
+    | 'date'
+    | 'datetime-local'
+    | 'json'
+    | 'select'
+    | 'checkbox'
+    | 'checkboxes'
+    | 'attachment';
+  accept?: string;
+  multiple?: boolean;
   required?: boolean;
   nullable?: boolean;
   maxLength?: number;
+  min?: number;
+  max?: number;
+  step?: number;
   hint?: string;
   items?: Option[];
   itemsFrom?: { resource: string; labelField: string };

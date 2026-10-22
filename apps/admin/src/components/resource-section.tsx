@@ -25,6 +25,9 @@ import {
   Typography,
 } from '@mui/material';
 import ResourceFields from './resource-fields';
+import { readFieldPath, nestFieldValues } from '../lib/field-paths';
+import ResourceAttachments from './resource-attachments';
+import { saveAttachments, type AttachmentChange } from '../lib/attachments';
 import { api } from '../lib/api';
 import type {
   FormValues,
@@ -33,6 +36,30 @@ import type {
   ResourceRecord,
   SectionConfig,
 } from '../configs/types';
+
+function editorValues(
+  section: SectionConfig,
+  record?: ResourceRecord | null,
+): FormValues {
+  return Object.fromEntries(
+    section.formFields
+      .filter((field) => field.type !== 'attachment')
+      .map((field) => {
+        const value =
+          readFieldPath(record, field.field) ??
+          readFieldPath(section.defaults, field.field) ??
+          null;
+        return [
+          field.field,
+          field.type === 'json'
+            ? JSON.stringify(value, null, 2)
+            : field.type === 'datetime-local' && typeof value === 'string'
+              ? value.replace(/Z$/, '')
+              : value,
+        ];
+      }),
+  );
+}
 
 function message(error: unknown) {
   return error instanceof Error
@@ -58,8 +85,11 @@ export default function ResourceSection({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [query, setQuery] = useState('{}');
+  const [attachmentChanges, setAttachmentChanges] = useState<
+    AttachmentChange[]
+  >([]);
   const [selected, setSelected] = useState<ResourceRecord | null>(null);
-  const [values, setValues] = useState<FormValues>({ ...section.defaults });
+  const [values, setValues] = useState<FormValues>(() => editorValues(section));
   const [options, setOptions] = useState<Record<string, Option[]>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -143,14 +173,8 @@ export default function ResourceSection({
 
   function select(record: ResourceRecord | null) {
     setSelected(record);
-    setValues(
-      Object.fromEntries(
-        section.formFields.map((field) => [
-          field.field,
-          record?.[field.field] ?? section.defaults[field.field],
-        ]),
-      ),
-    );
+    setAttachmentChanges([]);
+    setValues(editorValues(section, record));
     setPassword('');
     setConfirmation('');
     setError('');
@@ -160,11 +184,12 @@ export default function ResourceSection({
   useEffect(() => {
     const controller = new AbortController();
     setSelected(null);
+    setAttachmentChanges([]);
     setPassword('');
     setConfirmation('');
     setError('');
     if (!recordId || recordId === 'new') {
-      setValues({ ...section.defaults });
+      setValues(editorValues(section));
       setEditorLoading(false);
       return () => controller.abort();
     }
@@ -175,14 +200,7 @@ export default function ResourceSection({
       .then((record) => {
         if (!controller.signal.aborted) {
           setSelected(record);
-          setValues(
-            Object.fromEntries(
-              section.formFields.map((field) => [
-                field.field,
-                record[field.field] ?? section.defaults[field.field],
-              ]),
-            ),
-          );
+          setValues(editorValues(section, record));
         }
       })
       .catch((error) => {
@@ -204,22 +222,55 @@ export default function ResourceSection({
     setBusy(true);
     setError('');
     setNotice('');
+    let recordSaved = false;
     try {
-      const payload = Object.fromEntries(
-        section.formFields.map((field) => [
-          field.field,
-          typeof values[field.field] === 'string'
-            ? (values[field.field] as string).trim()
-            : values[field.field],
-        ]),
+      const payload = nestFieldValues(
+        section.formFields
+          .filter((field) => field.type !== 'attachment')
+          .map((field) => {
+            const raw = values[field.field];
+            let value = typeof raw === 'string' ? raw.trim() : raw;
+            if (field.type === 'json') {
+              try {
+                value = JSON.parse(String(raw));
+              } catch {
+                throw new Error(`${field.label} must contain valid JSON.`);
+              }
+            } else if (
+              field.type === 'number' &&
+              value !== null &&
+              value !== ''
+            ) {
+              value = Number(value);
+              if (!Number.isFinite(value))
+                throw new Error(`${field.label} must be a number.`);
+            } else if (field.type === 'datetime-local' && value) {
+              value = new Date(`${value}Z`).toISOString();
+            }
+            return [field.field, value];
+          }),
+        { ...section.defaults, ...selected },
       );
-      const record = await api<ResourceRecord>(
+      let record = await api<ResourceRecord>(
         `/${section.key}${selected ? `/${encodeURIComponent(selected.id)}` : ''}`,
         { method: selected ? 'PATCH' : 'POST', body: JSON.stringify(payload) },
       );
       const isNew = !selected;
+      recordSaved = true;
+      setSelected(record);
+      record = await saveAttachments(
+        section.key,
+        record,
+        attachmentChanges,
+        (change, updated) => {
+          setSelected(updated);
+          setAttachmentChanges((pending) =>
+            pending.filter((entry) => entry !== change),
+          );
+        },
+      );
       select(record);
-      if (isNew)
+      if (recordId === 'new')
         window.location.hash = `/${section.key}/${encodeURIComponent(record.id)}`;
       setNotice(
         isNew
@@ -230,7 +281,11 @@ export default function ResourceSection({
       setRefresh((value) => value + 1);
       await onAccessChange();
     } catch (error) {
-      setError(message(error));
+      setError(
+        recordSaved
+          ? `Page details were saved, but saving did not finish. ${message(error)} Remaining attachment changes are still pending; click Save changes to retry.`
+          : message(error),
+      );
     } finally {
       setBusy(false);
     }
@@ -355,7 +410,7 @@ export default function ResourceSection({
             {recordId === 'new' ? section.description : recordTitle}
           </Typography>
         </div>
-        {alerts}
+        {(editorLoading || (recordId !== 'new' && !selected)) && alerts}
         {editorLoading ? (
           <CircularProgress aria-label="Loading record" />
         ) : recordId !== 'new' && !selected ? (
@@ -371,12 +426,25 @@ export default function ResourceSection({
               <form onSubmit={save}>
                 <ResourceFields
                   fields={section.formFields}
+                  renderAttachment={(field) => (
+                    <ResourceAttachments
+                      key={field.field}
+                      resource={section.key}
+                      field={field}
+                      record={selected}
+                      canWrite={canWrite}
+                      changes={attachmentChanges}
+                      disabled={busy || !canWrite}
+                      onChange={setAttachmentChanges}
+                    />
+                  )}
                   values={values}
                   options={options}
                   disabled={busy || !canWrite}
                   onChange={setValues}
                 />
                 <Divider className="my-7" />
+                {alerts}
                 <div className="flex flex-wrap gap-3">
                   {canWrite && (
                     <Button

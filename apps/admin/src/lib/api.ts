@@ -10,7 +10,9 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     credentials: 'same-origin',
     headers: {
-      'Content-Type': 'application/json',
+      ...(options?.body instanceof FormData
+        ? {}
+        : { 'Content-Type': 'application/json' }),
       'X-CMS-Request': '1',
       ...options?.headers,
     },

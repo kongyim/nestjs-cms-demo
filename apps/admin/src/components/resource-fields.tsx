@@ -10,6 +10,7 @@ import {
   MenuItem,
   TextField,
 } from '@mui/material';
+import type { ReactNode } from 'react';
 import type { FormField, FormValues, Option } from '../configs/types';
 
 export default function ResourceFields({
@@ -18,7 +19,9 @@ export default function ResourceFields({
   options,
   disabled,
   onChange,
+  renderAttachment,
 }: {
+  renderAttachment: (field: FormField) => ReactNode;
   fields: FormField[];
   values: FormValues;
   options: Record<string, Option[]>;
@@ -28,6 +31,7 @@ export default function ResourceFields({
   return (
     <div className="flex flex-col gap-6">
       {fields.map((field) => {
+        if (field.type === 'attachment') return renderAttachment(field);
         const value = values[field.field];
         const items = field.itemsFrom
           ? (options[field.itemsFrom.resource] ?? [])
@@ -92,13 +96,31 @@ export default function ResourceFields({
             key={field.field}
             id={`field-${field.field}`}
             label={field.label}
-            type={field.type === 'select' ? undefined : field.type}
+            type={
+              ['select', 'textarea', 'json'].includes(field.type)
+                ? undefined
+                : field.type
+            }
+            multiline={field.type === 'textarea' || field.type === 'json'}
+            minRows={
+              field.type === 'textarea' || field.type === 'json' ? 4 : undefined
+            }
             select={field.type === 'select'}
             value={value ?? ''}
             disabled={disabled}
             required={field.required}
             helperText={field.hint}
-            slotProps={{ htmlInput: { maxLength: field.maxLength } }}
+            slotProps={{
+              htmlInput: {
+                maxLength: field.maxLength,
+                min: field.min,
+                max: field.max,
+                step: field.step,
+              },
+              inputLabel: ['date', 'datetime-local'].includes(field.type)
+                ? { shrink: true }
+                : undefined,
+            }}
             onChange={(event) =>
               onChange({
                 ...values,
