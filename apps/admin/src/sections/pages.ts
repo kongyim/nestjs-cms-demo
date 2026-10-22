@@ -29,6 +29,7 @@ export default defineSection({
   },
   listFields: [
     { field: 'title', label: 'Title' },
+    { field: 'cover', label: 'Cover', type: 'attachment' },
     {
       field: 'categoryId',
       label: 'Category',
