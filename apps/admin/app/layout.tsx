@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
-import AdminTheme from '../src/components/theme-provider';
+import '@nestjs-cms/admin/styles.css';
 
 export const metadata: Metadata = {
   title: 'CMS Admin',
@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          <AdminTheme>{children}</AdminTheme>
+          {children}
         </AppRouterCacheProvider>
       </body>
     </html>

@@ -1,9 +1,10 @@
-import type { SectionConfig } from '../configs/types';
+import { defineSection } from '@nestjs-cms/admin';
 const statuses = [
   { value: 'draft', label: 'Draft' },
   { value: 'published', label: 'Published' },
 ];
-export const pagesSection: SectionConfig = {
+export default defineSection({
+  order: 10,
   key: 'pages',
   label: 'Pages',
   singular: 'page',
@@ -158,4 +159,4 @@ export const pagesSection: SectionConfig = {
       hint: 'Array of objects with heading and content strings.',
     },
   ],
-};
+});

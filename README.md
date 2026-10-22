@@ -23,7 +23,9 @@ docker compose logs minio-init
 
 The API depends on the local package archive at
 `../nestjs-cms/nestjs-cms-0.1.0.tgz` relative to this repository. Keep that sibling
-archive available when installing dependencies.
+archive available when installing dependencies. The admin also requires
+`../nestjs-cms/packages/admin/nestjs-cms-admin-0.1.0.tgz`; see the reusable
+admin package instructions below to build it before installing.
 
 Wait for PostgreSQL and MinIO to be healthy and `minio-init` to finish
 successfully. The first build compiles MinIO from pinned source and can take
@@ -52,7 +54,7 @@ changing its default login variables does not reset an existing account.
 
 The admin manages pages, categories, roles, and users with searchable, paginated lists and
 create/edit/delete forms. User accounts include role assignment, active status,
-and a separate password form. Navigation follows the signed-in user’s permissions.
+and an inline password field saved with the other account details. Navigation follows the signed-in user’s permissions.
 Sign in with your email and password. The portal uses a server-side session
 with an HttpOnly cookie; the shared API key stays on the API server.
 
@@ -172,41 +174,55 @@ Provision the database before running this command and discard it afterward.
 The suite covers login, CSRF rejection, permission enforcement, credential
 isolation, disabled accounts, password changes, logout, expiry, and throttling.
 
-## Admin sections
+## Reusable admin package
 
-Each resource has its own declarative configuration, following the section pattern:
+The shared frontend now lives in `../nestjs-cms/packages/admin` as
+`@nestjs-cms/admin`. This demo installs its local package archive. Before a fresh
+install, build and pack it in the sibling repository:
+
+```bash
+cd ../nestjs-cms/packages/admin
+npm install
+npm run build
+npm test
+npm pack
+```
+
+Then run `npm install` in this demo. After changing the package, repack it and run
+this command from the demo root to refresh the installed copy:
+
+```bash
+npm install --workspace=@nestjs-cms-demo/admin ../nestjs-cms/packages/admin/nestjs-cms-admin-0.1.0.tgz
+```
+
+The host frontend is now configuration plus a small Next.js shell:
 
 ```text
 apps/admin/src/
+  admin.config.ts       Branding, API URL, default section, and discovered sections
+  sections.generated.ts Generated imports; do not edit
   sections/
-    pages.ts         Page fields, category selector, status, and permissions
-    categories.ts    Category fields and permissions
-    roles.ts         Role fields and permission checkboxes
-    users.ts         Account fields, role lookup, and password action
-    index.ts         Section registry and navigation order
-  configs/types.ts   Shared SectionConfig, field, and record types
-  components/resource-section.tsx  Shared table, pagination, and editing view
-  components/resource-fields.tsx   Material UI form fields
-  components/theme-provider.tsx    Material UI theme
-  lib/api.ts         Cookie-authenticated API client
+    pages.ts            Page fields and permissions
+    categories.ts       Category fields and permissions
+    roles.ts            Role fields and permissions
+    users.ts            Account fields and inline password action
 ```
 
-Configurations define `listFields`, `searchFields`, `formFields`, defaults, and
-read/write permissions. `itemsFrom` loads related records (including every page)
-for select fields. User password changes use the dedicated auth endpoint and
-never become part of the users resource payload. Add new resource definitions to
-`sections/` and register them in `sections/index.ts`; the backend must expose the
-resource and authorize its requests separately.
+To add a section, create a `.ts` file in `apps/admin/src/sections` that default-exports
+`defineSection({ ... })` from `@nestjs-cms/admin`. Set `order` to control navigation.
+No registry changes are needed: `npm run dev:admin` watches additions and removals,
+and build/typecheck regenerate imports automatically. Restart the dev command
+once after migrating from the old setup so the section watcher starts.
 
-The admin uses Material UI components and Tailwind CSS v4 utilities. The Next.js
-App Router cache provider enables the `mui` CSS layer before Tailwind utilities,
-following [Material UI's integration guide](https://mui.com/material-ui/integrations/tailwindcss/tailwindcss-v4/).
-The desktop sidebar lists resources; smaller screens use a navigation drawer.
-Tables include search, page-size selection, and pagination. Selecting a row opens
-a dedicated editor, with a back-to-list action that preserves list filters and
-pagination. Hash URLs such as `#/pages/<id>` support refresh and browser navigation.
+The package supplies navigation, lists, filters, forms, theme, image previews,
+deferred attachment updates, nested JSON dot paths, and password actions.
+Configurations retain `listFields`, `searchFields`, `formFields`, defaults, and
+read/write permissions. All fields—including attachments and passwords—follow
+`formFields` order. The host API must still expose and authorize each resource.
 
-Create categories from the Categories section, then choose a category when
-creating or editing a page. Choose Uncategorized to remove the association. With
-`DB_SYNCHRONIZE=true`, restart the development API to create the category table
-and page column; production requires a reviewed migration before deployment.
+The default authentication adapter uses this demo's cookie-session endpoints.
+Other consumers can configure authentication, transport, permissions, branding,
+custom field renderers, and theme. See `../nestjs-cms/packages/admin/README.md`
+for the package API and minimal setup. The package ships compiled CSS and does
+not require consumers to configure Tailwind. The Next.js host retains Material
+UI's App Router cache provider and the same-origin API proxy.

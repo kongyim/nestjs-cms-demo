@@ -1,6 +1,7 @@
-import type { SectionConfig } from '../configs/types';
+import { defineSection } from '@nestjs-cms/admin';
 const roles = { resource: 'roles', labelField: 'name' };
-export const usersSection: SectionConfig = {
+export default defineSection({
+  order: 40,
   key: 'users',
   label: 'Users',
   singular: 'user',
@@ -68,4 +69,4 @@ export const usersSection: SectionConfig = {
       hint: 'Disabling an account immediately blocks access. Keep an active administrator account available.',
     },
   ],
-};
+});

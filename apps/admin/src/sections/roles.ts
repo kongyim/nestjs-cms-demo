@@ -1,5 +1,6 @@
-import type { SectionConfig } from '../configs/types';
-export const rolesSection: SectionConfig = {
+import { defineSection } from '@nestjs-cms/admin';
+export default defineSection({
+  order: 30,
   key: 'roles',
   label: 'Roles',
   singular: 'role',
@@ -35,4 +36,4 @@ export const rolesSection: SectionConfig = {
       hint: 'Editors need both page permissions. User management grants full administrative access. Keep at least one administrator role available.',
     },
   ],
-};
+});

@@ -1,6 +1,7 @@
-import type { SectionConfig } from '../configs/types';
+import { defineSection } from '@nestjs-cms/admin';
 
-export const categoriesSection: SectionConfig = {
+export default defineSection({
+  order: 20,
   key: 'categories',
   label: 'Categories',
   singular: 'category',
@@ -23,4 +24,4 @@ export const categoriesSection: SectionConfig = {
       hint: 'Category names must be unique. Categories in use by pages cannot be deleted.',
     },
   ],
-};
+});
