@@ -18,6 +18,7 @@ export type FormField = {
   type:
     | 'text'
     | 'email'
+    | 'password'
     | 'url'
     | 'textarea'
     | 'number'
@@ -32,7 +33,9 @@ export type FormField = {
   multiple?: boolean;
   required?: boolean;
   nullable?: boolean;
+  minLength?: number;
   maxLength?: number;
+  passwordAction?: { path: (id: string) => string };
   min?: number;
   max?: number;
   step?: number;
@@ -62,5 +65,4 @@ export type SectionConfig = {
     boolean?: boolean;
   }[];
   formFields: FormField[];
-  passwordAction?: { path: (id: string) => string; hint: string };
 };

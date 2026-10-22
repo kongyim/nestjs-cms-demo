@@ -43,6 +43,17 @@ export const usersSection: SectionConfig = {
       maxLength: 254,
     },
     {
+      field: 'password',
+      label: 'Password',
+      type: 'password',
+      minLength: 12,
+      maxLength: 128,
+      hint: 'Use 12–128 characters. Leave blank to keep the current password. New accounts need a password to sign in. Changing it signs this user out of all sessions.',
+      passwordAction: {
+        path: (id) => `/auth/users/${encodeURIComponent(id)}/password`,
+      },
+    },
+    {
       field: 'roleId',
       label: 'Role',
       type: 'select',
@@ -57,8 +68,4 @@ export const usersSection: SectionConfig = {
       hint: 'Disabling an account immediately blocks access. Keep an active administrator account available.',
     },
   ],
-  passwordAction: {
-    path: (id) => `/auth/users/${encodeURIComponent(id)}/password`,
-    hint: 'Create the account first, then set its password to enable sign-in. Setting a password signs this user out of all sessions.',
-  },
 };

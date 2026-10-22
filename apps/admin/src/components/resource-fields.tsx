@@ -105,6 +105,9 @@ export default function ResourceFields({
             minRows={
               field.type === 'textarea' || field.type === 'json' ? 4 : undefined
             }
+            autoComplete={
+              field.type === 'password' ? 'new-password' : undefined
+            }
             select={field.type === 'select'}
             value={value ?? ''}
             disabled={disabled}
@@ -112,6 +115,7 @@ export default function ResourceFields({
             helperText={field.hint}
             slotProps={{
               htmlInput: {
+                minLength: field.minLength,
                 maxLength: field.maxLength,
                 min: field.min,
                 max: field.max,

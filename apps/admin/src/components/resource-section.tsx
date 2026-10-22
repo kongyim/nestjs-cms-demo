@@ -25,6 +25,7 @@ import {
   Typography,
 } from '@mui/material';
 import ResourceFields from './resource-fields';
+import { passwordChanges } from '../lib/password-fields';
 import { readFieldPath, nestFieldValues } from '../lib/field-paths';
 import ResourceAttachments from './resource-attachments';
 import { saveAttachments, type AttachmentChange } from '../lib/attachments';
@@ -45,6 +46,7 @@ function editorValues(
     section.formFields
       .filter((field) => field.type !== 'attachment')
       .map((field) => {
+        if (field.type === 'password') return [field.field, ''];
         const value =
           readFieldPath(record, field.field) ??
           readFieldPath(section.defaults, field.field) ??
@@ -97,8 +99,6 @@ export default function ResourceSection({
   const [lookupError, setLookupError] = useState('');
   const [notice, setNotice] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -175,8 +175,6 @@ export default function ResourceSection({
     setSelected(record);
     setAttachmentChanges([]);
     setValues(editorValues(section, record));
-    setPassword('');
-    setConfirmation('');
     setError('');
     setNotice('');
   }
@@ -185,8 +183,6 @@ export default function ResourceSection({
     const controller = new AbortController();
     setSelected(null);
     setAttachmentChanges([]);
-    setPassword('');
-    setConfirmation('');
     setError('');
     if (!recordId || recordId === 'new') {
       setValues(editorValues(section));
@@ -224,9 +220,12 @@ export default function ResourceSection({
     setNotice('');
     let recordSaved = false;
     try {
+      const passwords = passwordChanges(section.formFields, values);
       const payload = nestFieldValues(
         section.formFields
-          .filter((field) => field.type !== 'attachment')
+          .filter(
+            (field) => field.type !== 'attachment' && field.type !== 'password',
+          )
           .map((field) => {
             const raw = values[field.field];
             let value = typeof raw === 'string' ? raw.trim() : raw;
@@ -269,21 +268,25 @@ export default function ResourceSection({
           );
         },
       );
+      for (const change of passwords) {
+        await api(change.path(record.id), {
+          method: 'PUT',
+          body: JSON.stringify({ password: change.password }),
+        });
+        // Clear only successful password changes, so a later failure can be retried.
+        setValues((current) => ({ ...current, [change.field]: '' }));
+      }
       select(record);
       if (recordId === 'new')
         window.location.hash = `/${section.key}/${encodeURIComponent(record.id)}`;
-      setNotice(
-        isNew
-          ? `${section.label} record created.${section.passwordAction ? ' Set a password below to enable sign-in.' : ''}`
-          : 'Changes saved.',
-      );
+      setNotice(isNew ? `${section.label} record created.` : 'Changes saved.');
       if (isNew) setPage(1);
       setRefresh((value) => value + 1);
       await onAccessChange();
     } catch (error) {
       setError(
         recordSaved
-          ? `Page details were saved, but saving did not finish. ${message(error)} Remaining attachment changes are still pending; click Save changes to retry.`
+          ? `Record details were saved, but saving did not finish. ${message(error)} Remaining changes are still pending; click Save changes to retry.`
           : message(error),
       );
     } finally {
@@ -305,32 +308,6 @@ export default function ResourceSection({
       window.location.hash = `/${section.key}`;
       setNotice('Record deleted.');
       setRefresh((value) => value + 1);
-      await onAccessChange();
-    } catch (error) {
-      setError(message(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function changePassword(event: FormEvent) {
-    event.preventDefault();
-    if (!selected || !section.passwordAction) return;
-    if (password !== confirmation) {
-      setError('Passwords do not match.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      await api(section.passwordAction.path(selected.id), {
-        method: 'PUT',
-        body: JSON.stringify({ password }),
-      });
-      setPassword('');
-      setConfirmation('');
-      setNotice('Password set. Existing sessions have been revoked.');
       await onAccessChange();
     } catch (error) {
       setError(message(error));
@@ -475,51 +452,6 @@ export default function ResourceSection({
                 </div>
               </form>
             </Paper>
-            {section.passwordAction && canWrite && (
-              <Paper variant="outlined" className="p-6 md:p-8">
-                <Typography variant="h6" component="h2">
-                  Set password
-                </Typography>
-                <Typography
-                  color="text.secondary"
-                  variant="body2"
-                  className="mt-2 mb-6"
-                >
-                  {section.passwordAction.hint}
-                </Typography>
-                <form onSubmit={changePassword} className="flex flex-col gap-5">
-                  <TextField
-                    label="New password"
-                    type="password"
-                    autoComplete="new-password"
-                    disabled={busy || !selected}
-                    required
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    slotProps={{ htmlInput: { minLength: 12, maxLength: 128 } }}
-                    helperText="Use 12–128 characters."
-                  />
-                  <TextField
-                    label="Confirm password"
-                    type="password"
-                    autoComplete="new-password"
-                    disabled={busy || !selected}
-                    required
-                    value={confirmation}
-                    onChange={(event) => setConfirmation(event.target.value)}
-                    slotProps={{ htmlInput: { minLength: 12, maxLength: 128 } }}
-                  />
-                  <Button
-                    type="submit"
-                    variant="outlined"
-                    disabled={busy || !selected}
-                    className="self-start"
-                  >
-                    Set password
-                  </Button>
-                </form>
-              </Paper>
-            )}
           </div>
         )}
         <Dialog
