@@ -14,7 +14,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^9.5.0",
     "@mui/material-nextjs": "^9.5.0",
-    "@nestjs-cms/admin": "file:../../../nestjs-cms/packages/admin/nestjs-cms-admin-0.1.0.tgz",
+    "@nestjs-cms/admin": "^0.1.0",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

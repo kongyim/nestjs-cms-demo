@@ -21,11 +21,8 @@ docker compose up -d --build
 docker compose logs minio-init
 ```
 
-The API depends on the local package archive at
-`../nestjs-cms/nestjs-cms-0.1.0.tgz` relative to this repository. Keep that sibling
-archive available when installing dependencies. The admin also requires
-`../nestjs-cms/packages/admin/nestjs-cms-admin-0.1.0.tgz`; see the reusable
-admin package instructions below to build it before installing.
+The API uses `nestjs-cms` and the frontend uses `@nestjs-cms/admin`, both installed
+from npm. No sibling repository or local package archives are required.
 
 Wait for PostgreSQL and MinIO to be healthy and `minio-init` to finish
 successfully. The first build compiles MinIO from pinned source and can take
@@ -176,23 +173,12 @@ isolation, disabled accounts, password changes, logout, expiry, and throttling.
 
 ## Reusable admin package
 
-The shared frontend now lives in `../nestjs-cms/packages/admin` as
-`@nestjs-cms/admin`. This demo installs its local package archive. Before a fresh
-install, build and pack it in the sibling repository:
+The shared frontend is provided by `@nestjs-cms/admin` from npm. To install or
+update the CMS dependencies from this workspace root:
 
 ```bash
-cd ../nestjs-cms/packages/admin
-npm install
-npm run build
-npm test
-npm pack
-```
-
-Then run `npm install` in this demo. After changing the package, repack it and run
-this command from the demo root to refresh the installed copy:
-
-```bash
-npm install --workspace=@nestjs-cms-demo/admin ../nestjs-cms/packages/admin/nestjs-cms-admin-0.1.0.tgz
+npm install nestjs-cms --workspace=@nestjs-cms-demo/api
+npm install @nestjs-cms/admin --workspace=@nestjs-cms-demo/admin
 ```
 
 The host frontend is now configuration plus a small Next.js shell:
@@ -227,7 +213,7 @@ read/write permissions. All fields—including attachments and passwords—follo
 
 The default authentication adapter uses this demo's cookie-session endpoints.
 Other consumers can configure authentication, transport, permissions, branding,
-custom field renderers, and theme. See `../nestjs-cms/packages/admin/README.md`
+custom field renderers, and theme. See `node_modules/@nestjs-cms/admin/README.md`
 for the package API and minimal setup. The package ships compiled CSS and does
 not require consumers to configure Tailwind. The Next.js host retains Material
 UI's App Router cache provider and the same-origin API proxy.

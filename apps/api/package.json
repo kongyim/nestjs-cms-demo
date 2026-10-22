@@ -24,10 +24,10 @@
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
-    "nestjs-cms": "file:../../../nestjs-cms/nestjs-cms-0.1.0.tgz",
+    "dotenv": "^16.6.0",
+    "nestjs-cms": "^0.1.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "dotenv": "^16.6.0",
     "typeorm": "^0.3.25"
   },
   "devDependencies": {
