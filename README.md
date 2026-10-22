@@ -231,3 +231,8 @@ custom field renderers, and theme. See `../nestjs-cms/packages/admin/README.md`
 for the package API and minimal setup. The package ships compiled CSS and does
 not require consumers to configure Tailwind. The Next.js host retains Material
 UI's App Router cache provider and the same-origin API proxy.
+
+The Pages configuration demonstrates full-width grouped forms. Within `formFields`,
+use `width: 6` for two fields per row or `width: 4` for three; fields stack on mobile.
+Groups use `{ type: 'group', key, label, description?, fields: [...] }`. Layout
+changes do not affect the API payload or deferred attachment/password saves.
