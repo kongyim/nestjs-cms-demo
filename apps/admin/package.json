@@ -3,11 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "cms-admin dev -- next dev --port 3001",
-    "build": "cms-admin generate && next build",
+    "dev": "next dev --port 3001",
+    "build": "next build",
     "start": "next start --port 3001",
-    "typecheck": "cms-admin generate && tsc --noEmit",
-    "generate:sections": "cms-admin generate"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

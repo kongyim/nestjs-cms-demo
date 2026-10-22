@@ -199,8 +199,7 @@ The host frontend is now configuration plus a small Next.js shell:
 
 ```text
 apps/admin/src/
-  admin.config.ts       Branding, API URL, default section, and discovered sections
-  sections.generated.ts Generated imports; do not edit
+  admin.config.ts       Branding, API URL, default section, and ordered section imports
   sections/
     pages.ts            Page fields and permissions
     categories.ts       Category fields and permissions
@@ -209,10 +208,16 @@ apps/admin/src/
 ```
 
 To add a section, create a `.ts` file in `apps/admin/src/sections` that default-exports
-`defineSection({ ... })` from `@nestjs-cms/admin`. Set `order` to control navigation.
-No registry changes are needed: `npm run dev:admin` watches additions and removals,
-and build/typecheck regenerate imports automatically. Restart the dev command
-once after migrating from the old setup so the section watcher starts.
+`defineSection({ ... })` from `@nestjs-cms/admin`. Import it in `admin.config.ts` and
+add it to the `sections` array. Navigation follows that array's order:
+
+```ts
+sections: [categories, pages, roles, users],
+```
+
+Reorder the array to rearrange navigation, or remove an entry to hide that section.
+There is no `order` property, generated registry, or discovery command.
+`defaultSection` selects the initial screen without changing navigation order.
 
 The package supplies navigation, lists, filters, forms, theme, image previews,
 deferred attachment updates, nested JSON dot paths, and password actions.

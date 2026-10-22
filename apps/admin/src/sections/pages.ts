@@ -4,7 +4,6 @@ const statuses = [
   { value: 'published', label: 'Published' },
 ];
 export default defineSection({
-  order: 10,
   key: 'pages',
   label: 'Pages',
   singular: 'page',

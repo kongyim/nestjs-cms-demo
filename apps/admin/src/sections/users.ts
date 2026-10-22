@@ -1,7 +1,6 @@
 import { defineSection } from '@nestjs-cms/admin';
 const roles = { resource: 'roles', labelField: 'name' };
 export default defineSection({
-  order: 40,
   key: 'users',
   label: 'Users',
   singular: 'user',

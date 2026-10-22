@@ -1,7 +1,6 @@
 import { defineSection } from '@nestjs-cms/admin';
 
 export default defineSection({
-  order: 20,
   key: 'categories',
   label: 'Categories',
   singular: 'category',
