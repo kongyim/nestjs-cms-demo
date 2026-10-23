@@ -16,6 +16,7 @@
     "test": "npm run test --workspace=@nestjs-cms-demo/api --",
     "test:e2e": "npm run test:e2e --workspace=@nestjs-cms-demo/api",
     "typecheck:admin": "npm run typecheck --workspace=@nestjs-cms-demo/admin",
-    "lint": "npm run lint --workspace=@nestjs-cms-demo/api"
+    "lint": "npm run lint --workspace=@nestjs-cms-demo/api",
+    "dev:admin:local": "node scripts/install-local-admin.mjs"
   }
 }

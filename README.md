@@ -22,7 +22,8 @@ docker compose logs minio-init
 ```
 
 The API uses `nestjs-cms` and the frontend uses `@nestjs-cms/admin`, both installed
-from npm. No sibling repository or local package archives are required.
+from npm by default. The custom dashboard currently requires the updated local admin
+package; install it with the command below until that version is published.
 
 Wait for PostgreSQL and MinIO to be healthy and `minio-init` to finish
 successfully. The first build compiles MinIO from pinned source and can take
@@ -222,3 +223,33 @@ The Pages configuration demonstrates full-width grouped forms. Within `formField
 use `width: 6` for two fields per row or `width: 4` for three; fields stack on mobile.
 Groups use `{ type: 'group', key, label, description?, fields: [...] }`. Layout
 changes do not affect the API payload or deferred attachment/password saves.
+
+## Developing the admin library locally
+
+After `npm install` (or `npm ci`), install the custom-section build from the sibling
+repository without publishing or changing dependency versions and the lockfile:
+
+```bash
+npm run dev:admin:local
+npm run typecheck:admin
+npm run dev:admin
+```
+
+The first command runs `npm pack` in `../nestjs-cms/packages/admin` (including its
+build hook) and installs the archive into the admin workspace. Install the library's
+own dependencies first if needed. To use a different checkout:
+
+```bash
+npm run dev:admin:local -- /absolute/path/to/nestjs-cms/packages/admin
+```
+
+Repeat after library edits and restart the dev server. This is a build-and-copy
+workflow, not automatic source watching. `npm ci` restores registry dependencies;
+re-run the local install command afterward while the dashboard API is unpublished.
+Before release, run the library tests and the demo admin typecheck and build.
+
+The dashboard is registered in `apps/admin/src/sections/dashboard.ts`, and its React
+component lives in `apps/admin/src/components/dashboard.tsx`. It uses the library's
+`useAdmin()` hook and shows links allowed by the current user's permissions.
+Existing resource sections continue to use `defineSection()`. Use
+`defineCustomSection({ key, label, component, readPermission? })` for additional pages.

@@ -1,0 +1,99 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAdmin, type Identity } from '@nestjs-cms/admin';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  Typography,
+} from '@mui/material';
+
+export default function Dashboard() {
+  const { api, config } = useAdmin();
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const auth = config.auth?.(api);
+    const request = auth ? auth.getIdentity() : api<Identity>('/auth/me');
+    request
+      .then((user) => {
+        if (active) setIdentity(user);
+      })
+      .catch((cause: unknown) => {
+        if (active)
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'Could not load your dashboard.',
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [api, config]);
+
+  const resources = config.sections.filter(
+    (section) =>
+      section.type !== 'custom' &&
+      identity &&
+      (config.canAccess
+        ? config.canAccess(identity, section.readPermission)
+        : !section.readPermission ||
+          identity.permissions.includes(section.readPermission)),
+  );
+
+  return (
+    <Box>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Dashboard
+      </Typography>
+      {error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : !identity ? (
+        <CircularProgress aria-label="Loading dashboard" />
+      ) : (
+        <>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Welcome back, {identity.displayName}. Manage your content and team
+            from {config.title ?? 'your workspace'}.
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+            }}
+          >
+            {resources.map((section) => (
+              <Paper key={section.key} variant="outlined" sx={{ p: 3 }}>
+                <Typography variant="h6" component="h2">
+                  {section.label}
+                </Typography>
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  {section.description}
+                </Typography>
+                <Button
+                  component="a"
+                  href={`#/${section.key}`}
+                  variant="outlined"
+                >
+                  Open {section.label}
+                </Button>
+              </Paper>
+            ))}
+          </Box>
+          {resources.length === 0 && (
+            <Alert severity="info">
+              Your role does not include access to any resources.
+            </Alert>
+          )}
+        </>
+      )}
+    </Box>
+  );
+}
