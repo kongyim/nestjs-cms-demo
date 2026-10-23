@@ -116,7 +116,18 @@ describe('Google Sheets database import', () => {
       importRecordId(spreadsheetId, 'categories', 'category-1'),
     );
     expect(page.tags).toEqual(['news']);
+    expect(page.translations).toEqual({
+      en: 'Page 1',
+      tc: '頁面 1',
+      sc: '页面 1',
+    });
     expect(page.featured).toBe(true);
+    const customTags = await db
+      .getRepository('pages')
+      .findOneByOrFail({
+        id: importRecordId(spreadsheetId, 'pages', 'page-5'),
+      });
+    expect(customTags.tags).toEqual(['hello', 'world']);
     const user = await db.getRepository('users').findOneByOrFail({
       id: importRecordId(spreadsheetId, 'users', 'demo-alex'),
     });

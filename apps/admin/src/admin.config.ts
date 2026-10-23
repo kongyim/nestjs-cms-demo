@@ -2,6 +2,7 @@
 
 import { defineAdmin, createAuthSections } from '@nestjs-cms/admin';
 
+import TagField from './components/tag-field';
 import authExtensions from './sections/auth-extensions';
 import dashboard from './sections/dashboard';
 import categories from './sections/categories';
@@ -11,6 +12,7 @@ export default defineAdmin({
   title: 'CMS Workspace',
   apiBaseUrl: `${process.env.NEXT_PUBLIC_ADMIN_BASE_PATH}/api`,
   defaultSection: 'dashboard',
+  fieldRenderers: { tags: TagField },
   databaseImport: { label: 'Import database' },
   sections: [
     dashboard,

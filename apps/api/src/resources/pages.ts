@@ -14,10 +14,7 @@ export default defineResource({
       rating: z.number().min(0).max(5).default(0),
       publishDate: z.string().date().nullable().default(null),
       publishAt: z.string().datetime().nullable().default(null),
-      tags: z
-        .array(z.enum(['news', 'help', 'company']))
-        .nullable()
-        .default([]),
+      tags: z.array(z.string().trim().min(1)).nullable().default([]),
       translations: z
         .object({ en: z.string(), tc: z.string(), sc: z.string() })
         .strict()

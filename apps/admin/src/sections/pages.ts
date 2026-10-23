@@ -154,7 +154,7 @@ export default defineSection({
         {
           field: 'tags',
           label: 'Tags',
-          type: 'checkboxes',
+          type: 'tags',
           items: [
             {
               value: 'news',

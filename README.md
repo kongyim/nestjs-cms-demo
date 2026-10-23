@@ -400,3 +400,15 @@ The populated sheet and `examples/gsheet/` contain 13 schema-valid dummy records
 including Phone and Description. Original tabs are preserved as `_original_*` backups.
 The example users are inactive, with no passwords; use the existing admin password
 action to enable test logins. Attachments and passwords are not imported from cells.
+
+Spreadsheet imports also support dotted columns such as `translations.en`,
+`translations.tc`, and `translations.sc`. These are assembled into the nested JSON
+object. Blank cells preserve stored siblings on updates; new rows use object defaults.
+Do not mix a whole-object `translations` column with dotted translation columns.
+
+String-array fields accept comma-separated values: `help, news` becomes
+`["help", "news"]`. Values are trimmed and empty entries are discarded. JSON arrays
+remain supported; use `[]` to clear an array. Object arrays such as `blocks` still
+require JSON. The demo accepts nonempty string tags, including `hello` and `world`. The admin tag
+editor supports custom tags as well as the existing suggestions. Other resource
+string-enum arrays still enforce their own allowed values.
