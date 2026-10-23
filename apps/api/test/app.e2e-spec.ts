@@ -97,9 +97,14 @@ describe('Admin authentication and resource permissions (e2e)', () => {
       .post('/api/roles')
       .set(headers)
       .set('Cookie', adminCookie)
-      .send({ name: 'Reader', permissions: ['pages:read'] })
+      .send({
+        name: 'Reader',
+        permissions: ['pages:read'],
+        description: 'Read-only content access',
+      })
       .expect(201);
     readerRoleId = (role.body as { id: string }).id;
+    expect(role.body.description).toBe('Read-only content access');
     const user = await request(app.getHttpServer())
       .post('/api/users')
       .set(headers)
@@ -107,10 +112,12 @@ describe('Admin authentication and resource permissions (e2e)', () => {
       .send({
         email: 'Reader@example.test',
         displayName: 'Reader',
+        phone: '+44 20 7946 0000',
         roleId: readerRoleId,
       })
       .expect(201);
     readerId = (user.body as { id: string }).id;
+    expect(user.body.phone).toBe('+44 20 7946 0000');
     expect((user.body as { email: string }).email).toBe('reader@example.test');
     await request(app.getHttpServer())
       .put(`/api/auth/users/${readerId}/password`)
@@ -141,6 +148,46 @@ describe('Admin authentication and resource permissions (e2e)', () => {
     readerCookie = (
       login.headers['set-cookie'] as unknown as string[]
     )[0].split(';')[0];
+  });
+
+  it('updates custom auth fields, rejects invalid values, and preserves built-in fields', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/users/${readerId}`)
+      .set(headers)
+      .set('Cookie', adminCookie)
+      .send({ phone: 'x'.repeat(31) })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch(`/api/users/${readerId}`)
+      .set(headers)
+      .set('Cookie', adminCookie)
+      .send({ phone: '+44 7700 900123' })
+      .expect(200);
+    const user = await request(app.getHttpServer())
+      .get(`/api/users/${readerId}`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(user.body.phone).toBe('+44 7700 900123');
+    expect(user.body.email).toBe('reader@example.test');
+    expect(user.body.roleId).toBe(readerRoleId);
+    await request(app.getHttpServer())
+      .patch(`/api/roles/${readerRoleId}`)
+      .set(headers)
+      .set('Cookie', adminCookie)
+      .send({ description: 'Updated description' })
+      .expect(200);
+    const role = await request(app.getHttpServer())
+      .get(`/api/roles/${readerRoleId}`)
+      .set('Cookie', adminCookie)
+      .expect(200);
+    expect(role.body.description).toBe('Updated description');
+    expect(role.body.permissions).toEqual(['pages:read']);
+    await request(app.getHttpServer())
+      .patch(`/api/users/${readerId}`)
+      .set(headers)
+      .set('Cookie', readerCookie)
+      .send({ phone: '123' })
+      .expect(403);
   });
 
   it('links pages to categories, preserves uncategorized pages, and enforces references', async () => {

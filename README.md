@@ -307,3 +307,36 @@ component lives in `apps/admin/src/components/dashboard.tsx`. It uses the librar
 `useAdmin()` hook and shows links allowed by the current user's permissions.
 Existing resource sections continue to use `defineSection()`. Use
 `defineCustomSection({ key, label, component, readPermission? })` for additional pages.
+
+## Custom user and role fields
+
+This demo adds an optional **Phone** field to users (including list/search) and an
+optional **Description** field to roles. Both are stored in the database, validated
+by the API, and editable under the existing `users:manage` permission.
+
+- API fields: `apps/api/src/auth-resource-extensions.ts`.
+- Admin fields: `apps/admin/src/sections/auth-extensions.ts`.
+- Shared auth module/migration configuration: `apps/api/src/auth.config.ts`.
+
+After editing the library, run `npm run dev:cms:local` and restart both apps.
+With `DB_SYNCHRONIZE=true`, the development API creates the nullable columns on
+startup. Existing records and bootstrap accounts have null values for these fields.
+
+For an existing database with synchronization disabled, review the included
+`AuthExtraFields1792728000000` migration, back up the database, and apply it before
+starting the updated API:
+
+```bash
+npm run build:api
+node node_modules/typeorm/cli.js migration:run -d apps/api/dist/database/data-source.js
+```
+
+This migration adds two columns to existing `users` and `roles` tables; it is not
+an initial database migration. Do not apply it after synchronization has already
+created the columns. The CLI data source disables synchronization. No migration
+is applied automatically by this update.
+
+Extension schemas and columns must use matching field names. Give new fields
+schema defaults (or optional schemas with nullable/defaulted database columns).
+Built-in auth fields cannot be replaced. Admin defaults merge and field arrays
+append; adding a UI field alone does not add an API/database field.
