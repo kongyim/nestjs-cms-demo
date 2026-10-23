@@ -1,34 +1,29 @@
 import './env';
 import { Module } from '@nestjs/common';
+import { join } from 'node:path';
+import { CmsAuthModule } from '@nestjs-cms/auth';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { join } from 'node:path';
-import { ResourceModule, createCmsDataSource, loadResources } from 'nestjs-cms';
-import type { EntitySchema } from 'typeorm';
-import { APP_GUARD } from '@nestjs/core';
-import { Credential, Session } from './auth/auth.entities';
-import { AuthService } from './auth/auth.service';
-import { AuthController } from './auth/auth.controller';
-import { AuthGuard } from './auth/auth.guard';
-
-const resourcesPath = join(__dirname, 'resources');
-const extension = __filename.endsWith('.ts') ? '.ts' : '.js';
-const dataSource = createCmsDataSource(loadResources(resourcesPath, extension));
-dataSource.setOptions({
-  entities: [
-    ...(dataSource.options.entities as EntitySchema[]),
-    Credential,
-    Session,
-  ],
-});
 
 @Module({
-  imports: [ResourceModule.forRoot({ resourcesPath, extension, dataSource })],
-  controllers: [AuthController, AppController],
-  providers: [
-    AppService,
-    AuthService,
-    { provide: APP_GUARD, useClass: AuthGuard },
+  imports: [
+    CmsAuthModule.forRoot({
+      resourcesPath: join(__dirname, 'resources'),
+      extension: __filename.endsWith('.ts') ? '.ts' : '.js',
+      adminOrigin: process.env.ADMIN_ORIGIN ?? 'http://localhost:3001',
+      adminBasePath: process.env.ADMIN_BASE_PATH ?? '/admin',
+      bootstrapAdmin: process.env.ADMIN_BOOTSTRAP_EMAIL
+        ? {
+            email: process.env.ADMIN_BOOTSTRAP_EMAIL,
+            password: process.env.ADMIN_BOOTSTRAP_PASSWORD ?? '',
+          }
+        : undefined,
+      resourcePermissions: {
+        categories: { read: 'pages:read', write: 'pages:write' },
+      },
+    }),
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

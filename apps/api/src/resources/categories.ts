@@ -1,4 +1,4 @@
-import { defineResource, z } from 'nestjs-cms';
+import { defineResource, z } from '@nestjs-cms/core';
 
 export default defineResource({
   name: 'categories',

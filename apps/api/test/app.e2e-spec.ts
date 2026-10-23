@@ -3,8 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
-import { AppModule } from '../src/app.module';
-import { Credential, Session } from '../src/auth/auth.entities';
+import { Credential, Session } from '@nestjs-cms/auth';
 
 // Run only against an explicitly configured, disposable database.
 describe('Admin authentication and resource permissions (e2e)', () => {
@@ -28,6 +27,7 @@ describe('Admin authentication and resource permissions (e2e)', () => {
     }
     process.env.ADMIN_BOOTSTRAP_EMAIL = 'admin@example.test';
     process.env.ADMIN_BOOTSTRAP_PASSWORD = password;
+    const { AppModule } = await import('../src/app.module');
     const module = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

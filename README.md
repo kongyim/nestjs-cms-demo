@@ -13,17 +13,27 @@ docker-compose.yml
 
 ## Setup
 
-Use Node.js 22 or later and Docker Compose. From the repository root:
+Use Node.js 22 or later and Docker Compose. Until the new CMS releases are
+published, this repository installs the packages from the sibling `../nestjs-cms`
+checkout through `file:` dependencies. `.npmrc` enables `install-links` so npm
+installs built package contents rather than symlinking their source trees.
+
+For the first setup, install the library's build dependencies, then build and
+install all three packages from this repository root:
 
 ```bash
-npm install
+npm --prefix ../nestjs-cms ci
+npm --prefix ../nestjs-cms run build
+npm --prefix ../nestjs-cms/packages/auth ci
+npm --prefix ../nestjs-cms/packages/admin ci
+npm run dev:cms:local
 docker compose up -d --build
 docker compose logs minio-init
 ```
 
-The API uses `nestjs-cms` and the frontend uses `@nestjs-cms/admin`, both installed
-from npm by default. The custom dashboard currently requires the updated local admin
-package; install it with the command below until that version is published.
+The API uses `@nestjs-cms/core` and `@nestjs-cms/auth`; the frontend uses
+`@nestjs-cms/admin`. The auth module supplies users, roles, password handling,
+sessions, and API permission checks. Application code defines pages and categories.
 
 Wait for PostgreSQL and MinIO to be healthy and `minio-init` to finish
 successfully. The first build compiles MinIO from pinned source and can take
@@ -89,7 +99,7 @@ DB_SYNCHRONIZE=true
 ```
 
 Choose your own password (12–128 characters). Start the API and admin, then sign
-in at http://localhost:3001. Bootstrap creates an Administrator role and account
+in at http://localhost:3001/admin. Bootstrap creates an Administrator role and account
 only when the users table is empty. Remove the bootstrap variables after the
 first successful startup. Existing accounts and passwords are never overwritten.
 `DB_SYNCHRONIZE=true` creates the new tables in development only; production
@@ -97,7 +107,10 @@ needs a reviewed schema migration for `roles`, `users`, `admin_credentials`, and
 `admin_sessions`, including their foreign keys. The category feature also needs
 the `categories` table and nullable `pages.categoryId` foreign key.
 
-Resources are discovered from `apps/api/src/resources`:
+`CmsAuthModule.forRoot(...)` in `apps/api/src/app.module.ts` registers the CMS
+and authentication together. It reads the existing origin, admin prefix, and
+bootstrap settings from `.env`. The module automatically supplies users and roles;
+only pages and categories are discovered from `apps/api/src/resources`:
 
 - `users`: unique, normalized email, display name, role ID, and active status.
 - `roles`: unique name and a list of permissions. Referenced roles cannot be deleted.
@@ -112,15 +125,15 @@ New roles have no permissions by default. New users cannot sign in until their
 password is set. Manage all four resources in the portal or through the authenticated API.
 A role with read access alone gets a read-only page editor.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/auth/login` | Send `{ "email": "…", "password": "…" }`; sets a session cookie |
-| `GET /api/auth/me` | Current account and permissions |
-| `POST /api/auth/logout` | Revoke the session and clear the cookie |
-| `GET/POST /api/users` | List or create users (`users:manage`) |
-| `PATCH/DELETE /api/users/:id` | Update or delete a user (`users:manage`) |
-| `GET/POST /api/roles` | List or create roles (`users:manage`) |
-| `PATCH/DELETE /api/roles/:id` | Update or delete a role (`users:manage`) |
+| Endpoint                           | Purpose                                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `POST /api/auth/login`             | Send `{ "email": "…", "password": "…" }`; sets a session cookie            |
+| `GET /api/auth/me`                 | Current account and permissions                                            |
+| `POST /api/auth/logout`            | Revoke the session and clear the cookie                                    |
+| `GET/POST /api/users`              | List or create users (`users:manage`)                                      |
+| `PATCH/DELETE /api/users/:id`      | Update or delete a user (`users:manage`)                                   |
+| `GET/POST /api/roles`              | List or create roles (`users:manage`)                                      |
+| `PATCH/DELETE /api/roles/:id`      | Update or delete a role (`users:manage`)                                   |
 | `PUT /api/auth/users/:id/password` | Set `{ "password": "…" }` and revoke that user's sessions (`users:manage`) |
 
 Use a cookie-aware API client: log in, create a role with e.g.
@@ -136,7 +149,7 @@ store only a digest of a random token and expire after eight hours. Logout and
 password changes revoke sessions; disabled users and current role permissions
 are checked on every request. Expired sessions are cleaned up on login. Requests
 without sessions fail even if they supply `X-API-Key`. If `ADMIN_API_KEY` is set,
-the host guard supplies it internally after checking session permissions.
+the auth package guard supplies it internally after checking session permissions.
 
 For production, use HTTPS, set `NODE_ENV=production` (Secure cookies), configure
 `ADMIN_ORIGIN` to the public admin origin (without `/admin`). Next.js proxies
@@ -190,13 +203,11 @@ isolation, disabled accounts, password changes, logout, expiry, and throttling.
 
 ## Reusable admin package
 
-The shared frontend is provided by `@nestjs-cms/admin` from npm. To install or
-update the CMS dependencies from this workspace root:
-
-```bash
-npm install nestjs-cms --workspace=@nestjs-cms-demo/api
-npm install @nestjs-cms/admin --workspace=@nestjs-cms-demo/admin
-```
+The shared frontend is provided by `@nestjs-cms/admin`. Roles and Users are
+registered with `createAuthSections()` in `apps/admin/src/admin.config.ts`,
+including the role selector, active status, and inline password action. The
+configuration lists `pages:read` and `pages:write`; the helper also adds
+`users:manage`.
 
 The host frontend is now configuration plus a small Next.js shell:
 
@@ -206,8 +217,7 @@ apps/admin/src/
   sections/
     pages.ts            Page fields and permissions
     categories.ts       Category fields and permissions
-    roles.ts            Role fields and permissions
-    users.ts            Account fields and inline password action
+    dashboard.ts        Custom dashboard registration
 ```
 
 To add a section, create a `.ts` file in `apps/admin/src/sections` that default-exports
@@ -215,7 +225,10 @@ To add a section, create a `.ts` file in `apps/admin/src/sections` that default-
 add it to the `sections` array. Navigation follows that array's order:
 
 ```ts
-sections: [categories, pages, roles, users],
+sections: [categories, pages, ...createAuthSections([
+  { value: 'pages:read', label: 'View pages and categories' },
+  { value: 'pages:write', label: 'Edit pages and categories' },
+])],
 ```
 
 Reorder the array to rearrange navigation, or remove an entry to hide that section.
@@ -228,7 +241,7 @@ Configurations retain `listFields`, `searchFields`, `formFields`, defaults, and
 read/write permissions. All fields—including attachments and passwords—follow
 `formFields` order. The host API must still expose and authorize each resource.
 
-The default authentication adapter uses this demo's cookie-session endpoints.
+The default authentication adapter uses the auth package's cookie-session endpoints.
 Other consumers can configure authentication, transport, permissions, branding,
 custom field renderers, and theme. See `node_modules/@nestjs-cms/admin/README.md`
 for the package API and minimal setup. The package ships compiled CSS and does
@@ -240,29 +253,54 @@ use `width: 6` for two fields per row or `width: 4` for three; fields stack on m
 Groups use `{ type: 'group', key, label, description?, fields: [...] }`. Layout
 changes do not affect the API payload or deferred attachment/password saves.
 
-## Developing the admin library locally
+## Developing the CMS libraries locally
 
-After `npm install` (or `npm ci`), install the custom-section build from the sibling
-repository without publishing or changing dependency versions and the lockfile:
+After changing the sibling core, auth, or admin package, run:
 
 ```bash
-npm run dev:admin:local
+npm run dev:cms:local
+npm run build:api
 npm run typecheck:admin
-npm run dev:admin
 ```
 
-The first command runs `npm pack` in `../nestjs-cms/packages/admin` (including its
-build hook) and installs the archive into the admin workspace. Install the library's
-own dependencies first if needed. To use a different checkout:
+This builds core, auth, and admin in order, then runs `npm ci` to refresh the
+installed `file:` packages using the lockfile. Restart both dev servers afterward.
+It is a build-and-copy workflow, not source watching. The library dependencies must
+already be installed as described in Setup.
+
+## Switching to published packages
+
+Once core 0.1.3, auth 0.1.0, and admin 0.1.2 (or compatible newer versions) are on
+npm, run from this repository root:
 
 ```bash
-npm run dev:admin:local -- /absolute/path/to/nestjs-cms/packages/admin
+npm install @nestjs-cms/core@latest @nestjs-cms/auth@latest --workspace=@nestjs-cms-demo/api
+npm install @nestjs-cms/admin@latest --workspace=@nestjs-cms-demo/admin
 ```
 
-Repeat after library edits and restart the dev server. This is a build-and-copy
-workflow, not automatic source watching. `npm ci` restores registry dependencies;
-re-run the local install command afterward while the dashboard API is unpublished.
-Before release, run the library tests and the demo admin typecheck and build.
+These commands replace the local `file:` dependencies and update the lockfile.
+Commit both workspace manifests and the root lockfile. Future `npm ci` commands
+will then use npm releases; the sibling checkout is no longer needed.
+
+## Authentication migration
+
+The copied `apps/api/src/auth` implementation and users/roles resource files have
+been removed. The module uses the same table names, password hashes, session
+digests, and endpoint contract, so keep the existing database and `.env` values.
+Do not reset the database or bootstrap accounts again to perform this migration.
+Review schema migrations before production deployment.
+
+The category permission mapping explicitly preserves `pages:read` and
+`pages:write`. New application resources default to `<resource>:read` and
+`<resource>:write`; add their permission choices to `createAuthSections()` and
+grant them to the appropriate roles. Existing roles are not automatically granted
+new permissions. Keep the mapping in `app.module.ts` if resources share permissions.
+
+The end-to-end suite still exercises the real package endpoints against a
+separate disposable database. Tests set bootstrap variables before importing
+`AppModule`, because module options are resolved at import time. The package's own
+tests cover password hashing and cookie configuration; duplicate local unit tests
+have been removed.
 
 The dashboard is registered in `apps/admin/src/sections/dashboard.ts`, and its React
 component lives in `apps/admin/src/components/dashboard.tsx`. It uses the library's
