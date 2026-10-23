@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "dev": "nest start --watch"
+    "dev": "nest start --watch",
+    "database:import": "ts-node src/database-import.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -29,7 +30,8 @@
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.25",
     "@nestjs-cms/core": "file:../../../nestjs-cms",
-    "@nestjs-cms/auth": "file:../../../nestjs-cms/packages/auth"
+    "@nestjs-cms/auth": "file:../../../nestjs-cms/packages/auth",
+    "@nestjs-cms/import": "file:../../../nestjs-cms/packages/import"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

@@ -10,6 +10,7 @@ for (const [directory, name] of [
   [source, '@nestjs-cms/core'],
   [resolve(source, 'packages/auth'), '@nestjs-cms/auth'],
   [resolve(source, 'packages/admin'), '@nestjs-cms/admin'],
+  [resolve(source, 'packages/import'), '@nestjs-cms/import'],
 ]) {
   const manifest = JSON.parse(
     readFileSync(resolve(directory, 'package.json'), 'utf8'),

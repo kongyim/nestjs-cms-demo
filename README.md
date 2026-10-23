@@ -340,3 +340,63 @@ Extension schemas and columns must use matching field names. Give new fields
 schema defaults (or optional schemas with nullable/defaulted database columns).
 Built-in auth fields cannot be replaced. Admin defaults merge and field arrays
 append; adding a UI field alone does not add an API/database field.
+
+## Import from Google Sheets
+
+The reusable implementation lives in `nestjs-cms/packages/import` (`@nestjs-cms/import`).
+The API and CLI share the same resource schemas, key/reference mapping, validation,
+transaction behavior, and resource limit.
+
+Configure the repository root `.env`:
+
+```dotenv
+GSHEET_KEY_PATH=./key.json
+GSHEET_ID=1vx2Ihaeracqix7O9OEasO8A8zAu3vjFhOaj5fsL-zfM
+# Optional; blank/omitted means all registered resources with matching tabs.
+GSHEET_IMPORT_RESOURCES=
+# To limit imports instead: GSHEET_IMPORT_RESOURCES=categories,pages
+```
+
+The key stays server-side and is ignored by Git. Share the sheet with the service
+account in the key. Only read access is required for importing. Relative key paths
+resolve from this repository root, including when npm invokes the API workspace.
+
+```bash
+npm run dev:cms:local       # Rebuild/install changed local packages
+npm run database:import -- --dry-run
+npm run database:import
+```
+
+Start the API once (or apply schema migrations) before importing into a new database.
+The CLI imports data only: it does not synchronize schemas or bootstrap administrators.
+The dry run checks row schemas/references without writes; actual SQL uniqueness and
+hook failures are caught during the transactional import.
+
+The admin sidebar now includes **Import database** below all sections. Clicking it
+runs the same import via `/admin/api/database/import` (or your configured prefix),
+shows progress/results, and reloads the active section. Restart both apps after
+changing the server-side environment. It requires `users:manage` and write permission
+for every selected matching resource; users without management access cannot run it.
+
+Tabs must match resource names. Use `_key` for each row's permanent unique key, and
+headers such as `categoryId@categories` to reference keys in another resource:
+
+```text
+categories:  _key        name
+             news       News
+
+pages:       _key        title       categoryId@categories
+             welcome    Welcome     news
+```
+
+The importer orders dependencies, supports booleans/numbers/JSON, uses resource
+validation and hooks, and rolls back the whole batch on errors. Re-imports update
+stable IDs, never duplicate the same keys or delete missing sheet rows. If a reference
+tab is excluded by the resource limit, the referenced record must already exist from
+a previous import. Existing manually-created records with conflicting unique names
+or emails cause an error; they are not silently overwritten.
+
+The populated sheet and `examples/gsheet/` contain 13 schema-valid dummy records,
+including Phone and Description. Original tabs are preserved as `_original_*` backups.
+The example users are inactive, with no passwords; use the existing admin password
+action to enable test logins. Attachments and passwords are not imported from cells.

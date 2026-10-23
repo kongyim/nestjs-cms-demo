@@ -1,0 +1,3 @@
+_key,name,permissions,description
+demo-reader,Demo Content Reader,"[""pages:read""]",Can read pages and categories.
+demo-editor,Demo Content Editor,"[""pages:read"", ""pages:write""]",Can create and edit pages and categories.

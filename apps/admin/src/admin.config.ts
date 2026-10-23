@@ -11,6 +11,7 @@ export default defineAdmin({
   title: 'CMS Workspace',
   apiBaseUrl: `${process.env.NEXT_PUBLIC_ADMIN_BASE_PATH}/api`,
   defaultSection: 'dashboard',
+  databaseImport: { label: 'Import database' },
   sections: [
     dashboard,
     categories,
