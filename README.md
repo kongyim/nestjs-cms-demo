@@ -39,7 +39,7 @@ npm run dev:admin
 ```
 
 - API: http://localhost:3000
-- Admin: http://localhost:3001
+- Admin: http://localhost:3001/admin
 - MinIO console: http://localhost:9001
 - pgAdmin 4: http://localhost:8080
 
@@ -56,10 +56,26 @@ and an inline password field saved with the other account details. Navigation fo
 Sign in with your email and password. The portal uses a server-side session
 with an HttpOnly cookie; the shared API key stays on the API server.
 
-During development, Next.js proxies `/api/:path*` to
-`http://localhost:3000/api/:path*` via a rewrite. Browser requests stay on the
-admin origin. The API continues to load the root `.env`, including PostgreSQL
-and MinIO settings; no copy of that file is needed in either app.
+Set the admin prefix in the repository root `.env`:
+
+```dotenv
+ADMIN_BASE_PATH=/admin
+```
+
+This defaults to `/admin`. The admin opens at `http://localhost:3001/admin`,
+and browser API requests use `http://localhost:3001/admin/api/pages`,
+`/admin/api/auth/login`, and so on. Next.js proxies these to the existing NestJS
+`http://localhost:3000/api/*` endpoints in both development and production.
+Resources use hash navigation, for example `/admin#/pages`.
+
+Change the value to `/cms` or `/tools/cms` to move both the UI and API proxy.
+Use `ADMIN_BASE_PATH=` to serve the admin at `/` and the proxy at `/api`.
+Trailing slashes are removed. Restart both admin and API servers after changes and
+sign in again so the session cookie uses the new path; production
+requires rebuilding because Next.js embeds the base path in browser assets.
+The root `.env` is loaded automatically; existing process or app-local environment
+variables take precedence. Only the resolved public path is exposed to the browser.
+The API continues to use the shared root `.env` for its own settings.
 
 ## Administrator login, users, and roles
 
@@ -123,8 +139,9 @@ without sessions fail even if they supply `X-API-Key`. If `ADMIN_API_KEY` is set
 the host guard supplies it internally after checking session permissions.
 
 For production, use HTTPS, set `NODE_ENV=production` (Secure cookies), configure
-`ADMIN_ORIGIN` to the public admin origin, and route `/api/*` to NestJS on that
-same origin. The installed CMS package still requires a server-only
+`ADMIN_ORIGIN` to the public admin origin (without `/admin`). Next.js proxies
+`/admin/api/*` to NestJS on `localhost:3000`; if deploying the API on another host,
+update the rewrite destination in `apps/admin/next.config.ts`. The installed CMS package still requires a server-only
 `ADMIN_API_KEY` of at least 32 characters in production. Login throttling currently
 uses per-process IP/global limits; multi-instance deployments need a shared
 limiter or equivalent ingress limits. Proxy IPs are not trusted by default.
@@ -141,8 +158,7 @@ npm run test:e2e           # Auth integration tests; see disposable database set
 ```
 
 After building, `npm run start:api` and `npm run start:admin` start the respective
-production servers. The API rewrite is development-only; production hosting
-must route `/api/*` to the API on the same origin.
+production servers. The prefixed API rewrite is enabled in both environments.
 
 ## Local storage
 

@@ -10,7 +10,7 @@ import users from './sections/users';
 
 export default defineAdmin({
   title: 'CMS Workspace',
-  apiBaseUrl: '/api',
+  apiBaseUrl: `${process.env.NEXT_PUBLIC_ADMIN_BASE_PATH}/api`,
   defaultSection: 'dashboard',
   sections: [dashboard, categories, pages, roles, users],
 });

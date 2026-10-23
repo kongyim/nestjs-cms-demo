@@ -79,7 +79,9 @@ describe('Admin authentication and resource permissions (e2e)', () => {
     const cookies = response.headers['set-cookie'] as unknown as string[];
     expect(cookies[0]).toContain('HttpOnly');
     expect(cookies[0]).toContain('SameSite=Strict');
-    expect(cookies[0]).toContain('Path=/api');
+    expect(cookies[0]).toContain(
+      `Path=${(process.env.ADMIN_BASE_PATH ?? '/admin').trim().replace(/\/+$/, '')}/api`,
+    );
     adminCookie = cookies[0].split(';')[0];
     expect(JSON.stringify(response.body)).not.toContain('password');
     const sessions = await db.getRepository(Session).find();

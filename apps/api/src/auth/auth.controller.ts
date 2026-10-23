@@ -18,7 +18,7 @@ const cookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
-  path: '/api',
+  path: `${(process.env.ADMIN_BASE_PATH ?? '/admin').trim().replace(/\/+$/, '')}/api`,
 });
 
 @Controller('api/auth')
