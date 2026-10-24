@@ -6,7 +6,6 @@ An npm workspace with a NestJS API and a Next.js admin.
 apps/
   api/       NestJS API, resource definitions, and API tests
   admin/     Next.js admin (App Router)
-docker/      MinIO build and bucket initialization
 .env         Local API and Docker Compose configuration (not committed)
 docker-compose.yml
 ```
@@ -27,17 +26,18 @@ npm --prefix ../nestjs-cms run build
 npm --prefix ../nestjs-cms/packages/auth ci
 npm --prefix ../nestjs-cms/packages/admin ci
 npm run dev:cms:local
-docker compose up -d --build
-docker compose logs minio-init
+docker compose up -d
 ```
 
 The API uses `@nestjs-cms/core` and `@nestjs-cms/auth`; the frontend uses
 `@nestjs-cms/admin`. The auth module supplies users, roles, password handling,
 sessions, and API permission checks. Application code defines pages and categories.
 
-Wait for PostgreSQL and MinIO to be healthy and `minio-init` to finish
-successfully. The first build compiles MinIO from pinned source and can take
-several minutes. The initializer creates the private bucket named by `S3_BUCKET`.
+Wait for PostgreSQL and RustFS to be healthy. Compose uses the published
+`rustfs/rustfs` image; no custom Dockerfiles or initialization container are needed.
+For a fresh volume, open http://localhost:9001, sign in using `S3_ACCESS_KEY_ID`
+and `S3_SECRET_ACCESS_KEY` from `.env`, and create the private bucket named by
+`S3_BUCKET` once.
 
 ## Development
 
@@ -50,7 +50,7 @@ npm run dev:admin
 
 - API: http://localhost:3000
 - Admin: http://localhost:3001/admin
-- MinIO console: http://localhost:9001
+- RustFS console: http://localhost:9001
 - pgAdmin 4: http://localhost:8080
 
 Start pgAdmin and PostgreSQL with `docker compose up -d pgadmin`. Sign in with
@@ -175,10 +175,33 @@ production servers. The prefixed API rewrite is enabled in both environments.
 
 ## Local storage
 
-The host API connects to PostgreSQL on `127.0.0.1:5432` and MinIO on
-`http://127.0.0.1:9000`. Use `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` from
-`.env` to sign into the MinIO console. The supplied credentials are for local
-development.
+The host API connects to PostgreSQL on `127.0.0.1:5432` and RustFS on
+`http://127.0.0.1:9000`. The existing `S3_*` settings work with RustFS's S3 API;
+keep `S3_FORCE_PATH_STYLE=true`. Use `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`
+from `.env` to sign into its console at http://localhost:9001.
+
+Create the bucket named by `S3_BUCKET` through the console on first setup, leaving
+it private. There is no automatic bucket initializer. See the
+[official RustFS Docker instructions](https://github.com/rustfs/docs.rustfs.com/blob/main/content/en/installation/container/docker.md).
+
+### Switching an existing MinIO setup
+
+RustFS uses a new `rustfs-data` volume. The old `minio-data` volume is not mounted,
+modified, or deleted. Existing attachments remain in MinIO and must be copied via
+S3 to the same bucket and object keys in RustFS before they can be downloaded from
+RustFS. Do not point RustFS directly at MinIO's data directory.
+
+The services use the same host ports, so stop the old MinIO container before
+starting RustFS. For a fresh local setup without attachments to migrate:
+
+```bash
+docker compose up -d --remove-orphans
+```
+
+This replaces obsolete Compose containers while retaining their named volumes.
+If you have existing attachments, keep MinIO available during an S3 migration
+(using separate ports for RustFS), and switch the API endpoint after copying and
+verifying the files. Changing Compose alone does not migrate attachments.
 
 Both services retain data in Docker volumes. `docker compose down` preserves
 that data; `docker compose down -v` deletes it. PostgreSQL credentials initialize
