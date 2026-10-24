@@ -32,3 +32,24 @@ remain supported; use `[]` to clear an array. Object arrays such as `blocks` sti
 require JSON. The demo accepts nonempty string tags, including `hello` and `world`. The admin tag
 editor supports custom tags as well as the existing suggestions. Other resource
 string-enum arrays still enforce their own allowed values.
+
+## Attachment columns
+
+Add `cover` for a single image URL and `documents` for comma-separated
+file URLs to the `pages` tab. The resource definition determines which fields
+are attachments and whether they accept multiple files. For example:
+
+| cover | documents |
+| --- | --- |
+| https://example.com/cover.jpg | https://example.com/guide.pdf, https://example.com/terms.pdf |
+
+Use public direct download URLs. Covers accept PNG/JPEG (up to 5 MB); documents
+accept PDF/plain text (up to 10 MB), also subject to the global attachment limit.
+Blank cells preserve existing files. Reimporting the same URLs does not duplicate
+attachments. Single URLs replace the previous file; multiple URLs append files.
+Removing a URL from a cell does not remove an existing attachment.
+
+`npm run database:import -- --dry-run` downloads and validates the linked files
+without uploading or writing records. Then run `npm run database:import` to store
+them using the configured attachment storage. Failed imports leave pending uploads
+for the regular storage cleanup job. Percent-encode commas inside URLs as `%2C`.
