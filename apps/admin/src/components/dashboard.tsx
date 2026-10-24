@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useAdmin, type Identity } from '@nestjs-cms/admin';
 import {
-  Alert,
   Box,
   Button,
   CircularProgress,
@@ -12,12 +11,13 @@ import {
 } from '@mui/material';
 
 export default function Dashboard() {
-  const { api, config } = useAdmin();
+  const { api, config, notify } = useAdmin();
   const [identity, setIdentity] = useState<Identity | null>(null);
-  const [error, setError] = useState('');
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
+    setFailed(false);
     const auth = config.auth?.(api);
     const request = auth ? auth.getIdentity() : api<Identity>('/auth/me');
     request
@@ -25,17 +25,20 @@ export default function Dashboard() {
         if (active) setIdentity(user);
       })
       .catch((cause: unknown) => {
-        if (active)
-          setError(
+        if (active) {
+          setFailed(true);
+          notify(
             cause instanceof Error
               ? cause.message
               : 'Could not load your dashboard.',
+            'error',
           );
+        }
       });
     return () => {
       active = false;
     };
-  }, [api, config]);
+  }, [api, config, notify]);
 
   const resources = config.sections.filter(
     (section) =>
@@ -47,14 +50,17 @@ export default function Dashboard() {
           identity.permissions.includes(section.readPermission)),
   );
 
+  const hasResources = resources.length > 0;
+  useEffect(() => {
+    if (identity && !hasResources) notify('Your role does not include access to any resources.', 'info');
+  }, [identity, hasResources, notify]);
+
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
-      {error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : !identity ? (
+      {failed ? null : !identity ? (
         <CircularProgress aria-label="Loading dashboard" />
       ) : (
         <>
@@ -87,11 +93,6 @@ export default function Dashboard() {
               </Paper>
             ))}
           </Box>
-          {resources.length === 0 && (
-            <Alert severity="info">
-              Your role does not include access to any resources.
-            </Alert>
-          )}
         </>
       )}
     </Box>
