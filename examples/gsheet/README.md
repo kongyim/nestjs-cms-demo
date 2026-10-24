@@ -55,3 +55,7 @@ Removing a URL from a cell does not remove an existing attachment.
 without uploading or writing records. Then run `npm run database:import` to store
 them using the configured attachment storage. Failed imports leave pending uploads
 for the regular storage cleanup job. Percent-encode commas inside URLs as `%2C`.
+
+Undefined or blank column headers are ignored with warnings in the import result.
+Rows whose `_key` is missing or empty after trimming are skipped. The sheet still
+requires one `_key` header; invalid values in defined fields remain errors.
