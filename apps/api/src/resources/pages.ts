@@ -55,7 +55,7 @@ export default defineResource({
     {
       field: 'documents',
       multiple: true,
-      mimeTypes: ['application/pdf', 'text/plain'],
+      mimeTypes: ['application/pdf', 'text/plain', 'image/*'],
       maxBytes: 10 * 1024 * 1024,
     },
   ],
