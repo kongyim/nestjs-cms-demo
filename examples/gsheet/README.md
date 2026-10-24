@@ -4,7 +4,9 @@
 configured spreadsheet: 3 categories, 6 pages, 2 roles, 2 users.
 
 Each tab is named after its resource. `_key` is the permanent import identity.
-`categoryId@categories` and `roleId@roles` contain another tab's `_key` values.
+`categoryId` and `roleId` contain another tab's `_key` values; targets are inferred
+from the resource's foreign keys. The older `categoryId@categories` and `roleId@roles`
+headers are also supported.
 Translations use separate dotted columns, and string arrays accept comma-separated
 values. Other JSON fields use JSON text. Dates use ISO text.
 

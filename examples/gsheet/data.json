@@ -42,7 +42,7 @@
       "_key",
       "email",
       "displayName",
-      "roleId@roles",
+      "roleId",
       "active",
       "phone"
     ],
@@ -66,7 +66,7 @@
   "pages": [
     [
       "_key",
-      "categoryId@categories",
+      "categoryId",
       "title",
       "body",
       "contactEmail",
