@@ -343,7 +343,9 @@ append; adding a UI field alone does not add an API/database field.
 
 ## Import from Google Sheets
 
-The reusable implementation lives in `nestjs-cms/packages/import` (`@nestjs-cms/import`).
+The reusable implementation and CLI live in `nestjs-cms/packages/import` (`@nestjs-cms/import`).
+The `database:import` script uses the package CLI with `apps/api/src/auth.config.ts`;
+no application-owned import runner is needed.
 The API and CLI share the same resource schemas, key/reference mapping, validation,
 transaction behavior, and resource limit.
 
